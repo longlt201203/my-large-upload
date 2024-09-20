@@ -24,7 +24,7 @@
       "options": {
         "targetName": "test"
       },
-      "exclude": ["api-e2e/**/*"]
+      "exclude": ["api-e2e/**/*", "api-cluster-e2e/**/*"]
     },
     {
       "plugin": "@nx/webpack/plugin",
