@@ -7,6 +7,7 @@
   "license": "MIT",
   "scripts": {
     "start:api": "nx serve api",
+    "start:cluster": "nx serve api-cluster",
     "start:front": "nx serve front"
   },
   "dependencies": {
