@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { upload } from './multer';
 import { handleFile } from './busboy';
+import { SocketSingleton } from 'api/src/socket';
 
 const uploadsFolder = 'uploads';
 if (!fs.existsSync(uploadsFolder)) fs.mkdirSync(uploadsFolder);
@@ -27,4 +28,7 @@ const port = process.env.PORT || 3333;
 const server = app.listen(port, () => {
   console.log(`Listening at http://localhost:${port}/api`);
 });
+
+SocketSingleton.init(server);
+
 server.on('error', console.error);

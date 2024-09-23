@@ -3,8 +3,8 @@
 import React, { useState } from 'react';
 import axios, { AxiosProgressEvent } from 'axios';
 
-const CHUNK_SIZE = 50 * 1024 * 1024; // 5MB per chunk
-const MAX_CONCURRENT_UPLOADS = 20; // Number of concurrent uploads
+const CHUNK_SIZE = 10 * 1024 * 1024; // 5MB per chunk
+const MAX_CONCURRENT_UPLOADS = 10; // Number of concurrent uploads
 
 const App: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);

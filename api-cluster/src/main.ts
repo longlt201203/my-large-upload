@@ -5,6 +5,8 @@ import { upload } from './multer';
 import { handleFile } from './busboy';
 import cluster from 'cluster';
 import { availableParallelism } from 'os';
+import { Server as SocketServer } from 'socket.io';
+import { SocketSingleton } from 'api-cluster/src/socket';
 
 function main() {
   const app = express();
@@ -27,6 +29,8 @@ function main() {
   const server = app.listen(port, () => {
     console.log(`Listening at http://localhost:${port}/api`);
   });
+  SocketSingleton.init(server);
+
   server.on('error', console.error);
 }
 
