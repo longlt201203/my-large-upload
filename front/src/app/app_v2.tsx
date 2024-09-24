@@ -1,5 +1,5 @@
 import axios from "axios";
-import { ChangeEventHandler, useState } from "react";
+import { ChangeEventHandler, useEffect, useState } from "react";
 import { io } from "socket.io-client";
 
 function calculateFileSize(file: File): [number, string] {
@@ -38,8 +38,7 @@ export default function AppV2() {
     const [file, setFile] = useState<File | null>(null);
     const [prefix, setPrefix] = useState<string | null>(null);
     const [fileSize, setFileSize] = useState<number | null>(null);
-    const [chunkSize, setChunkSize] = useState(10);
-    const [maxAsyncCalls, setMaxAsyncCalls] = useState(1);
+    const [chunkSize, setChunkSize] = useState(100);
     const [isUploading, setIsUploading] = useState(false);
     const [chunkInfo, setChunkInfo] = useState<{
         chunkIndex: number;
@@ -47,7 +46,9 @@ export default function AppV2() {
     }[]>([]);
     const [totalUploadTime, setTotalUploadTime] = useState<number | null>(null);
     const [totalProgress, setTotalProgress] = useState<string | null>(null);
-    const [uploadSpeed, setUploadSpeed] = useState<number | null>(null);
+    const [uploadSpeedSum, setUploadSpeedSum] = useState<number | null>(null);
+    const [chunkUploadSpeed, setChunkUploadSpeed] = useState<number[]>([]);
+    const [expectedTimeLeft, setExpectedTimeLeft] = useState<number | null>(null);
     
     const onFileChange: ChangeEventHandler<HTMLInputElement> = (e) => {
         if (!e.target.files) return;
@@ -74,7 +75,9 @@ export default function AppV2() {
         setChunkInfo([]);
         setTotalUploadTime(null);
         setTotalProgress(null);
-        setUploadSpeed(null);
+        setUploadSpeedSum(null);
+        setChunkUploadSpeed([]);
+        setExpectedTimeLeft(null);
     }
 
     const onSubmit = async () => {
@@ -89,7 +92,6 @@ export default function AppV2() {
         if (!file || chunkSize <= 0) return;
         const numberOfChunks = calculateNumberOfChunks(file, chunkSize);
         const chunkSizeByte = chunkSize*1024*1024;
-        let promises: Promise<any>[] = [];
         const startTime = performance.now();
         for (let i = 0; i < numberOfChunks; i++) {
             const start = i*chunkSizeByte;
@@ -103,15 +105,20 @@ export default function AppV2() {
                 chunkIndex: i+1,
                 progress: "0"
             }])
-            promises.push(axios.post(endpoint, formData, {
+            const chunkTimeStart = performance.now();
+            await axios.post(endpoint, formData, {
                 onUploadProgress: (e) => {
                     if (e.total) {
-                        const elapsedTime = (performance.now() - startTime)/1000;
-                        const uploadedBytes = i*chunkSizeByte+e.loaded;
-                        const uploadSpeedBps = uploadedBytes / elapsedTime;
-                        const uploadSpeedMbps = uploadSpeedBps / (1024 * 1024);
-                        setUploadSpeed(uploadSpeedMbps);
-                        const totalProgress = ((uploadedBytes/file.size)*100).toFixed(2);
+                        const endTime = performance.now();
+                        const chunkUploadTime = (endTime - chunkTimeStart) / 1000;
+                        const chunkUploadSpeed = (e.loaded/1024/1024) / chunkUploadTime;
+                        setChunkUploadSpeed(prev => [...prev, chunkUploadSpeed]);
+                        const uploadTime = (endTime - startTime)/1000;
+                        const uploadedBytes = i*chunkSizeByte + e.loaded;
+                        const uploadSpeed = (uploadedBytes/1024/1024) / uploadTime;
+                        setUploadSpeedSum(uploadSpeed);
+                        setExpectedTimeLeft(((file.size-uploadedBytes)/1024/1024)/uploadSpeed)
+                        const totalProgress = ((uploadedBytes / file.size)*100).toFixed(2);
                         setTotalProgress(totalProgress);
                         const progress = ((e.loaded / e.total) * 100).toFixed(2);
                         setChunkInfo((prev) => {
@@ -120,11 +127,7 @@ export default function AppV2() {
                         });
                     }
                 },
-            }));
-            if (promises.length == maxAsyncCalls) {
-                await Promise.all(promises)
-                promises = [];
-            }
+            });
         }
         const totalTime2 = performance.now();
         setTotalUploadTime(totalTime2-totalTime1);
@@ -165,10 +168,10 @@ export default function AppV2() {
                     <label htmlFor="">Chunk size (MB)</label>
                     <input type="number" className="border rounded p-1" value={String(chunkSize)} onChange={(e) => setChunkSize(Number(e.target.value))} />
                 </div>
-                <div className="flex gap-4 items-center">
+                {/* <div className="flex gap-4 items-center">
                     <input type="checkbox" id="uploadSocket" />
                     <label htmlFor="uploadSocket">Upload socket</label>
-                </div>
+                </div> */}
                 {/* <div className="flex gap-4 items-center">
                     <label htmlFor="">Max number of async calls</label>
                     <input type="number" className="border rounded p-1" value={String(maxAsyncCalls)} onChange={(e) => setMaxAsyncCalls(Number(e.target.value))} />
@@ -178,14 +181,16 @@ export default function AppV2() {
                 </div>}
                 <div className="flex flex-col gap-2">
                     <button type="button" className="px-4 py-2 bg-orange-200 rounded" onClick={onSubmit} disabled={isUploading}>{isUploading ? "Uploading..." : "Upload"}</button>
-                    <button type="button" className="px-4 py-2 bg-orange-200 rounded" onClick={testSocket}>Test Socket</button>
+                    {/* <button type="button" className="px-4 py-2 bg-orange-200 rounded" onClick={testSocket}>Test Socket</button> */}
                 </div>
                 <hr />
                 {totalProgress && <div className="flex flex-col gap-2">
-                    <p>Upload Speed: {uploadSpeed} Mbps</p>
+                    <p>Average Upload Speed: {uploadSpeedSum?.toFixed(2)} Mbps</p>
+                    <p>Median Upload Speed: {(chunkUploadSpeed.reduce((prev, next) => prev+next)/chunkUploadSpeed.length).toFixed(2)} Mbps</p>
+                    <p>Expected Time Left: {expectedTimeLeft?.toFixed(2)}s</p>
                     <p>Total Progress: {totalProgress}%</p>
                     {chunkInfo.map((item, index) => (
-                        <p key={index}>Chunk {item.chunkIndex}: {item.progress}%</p>
+                        <p key={index}>Chunk {item.chunkIndex}: {item.progress}%{chunkUploadSpeed[index] && ` (${chunkUploadSpeed[index].toFixed(2)} Mbps)`}</p>
                     ))}
                 </div>}
             </form>
