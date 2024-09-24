@@ -45,7 +45,7 @@ export default function ServerStatusChart() {
             t: (item.timestamp - startTimestamp)/1000,
             appCpu: item.cpuUsagePercentage,
             appMem: item.ramUsagePercentage,
-            otherCpu: item.totalCpuUsagePercentage-item.cpuUsagePercentage,
+            otherCpu: item.totalCpuUsagePercentage,
             otherMem: item.totalMemoryUsagePercentage-item.ramUsagePercentage,
             freeMem: 100-item.totalMemoryUsagePercentage,
             freeCpu: 100-item.totalCpuUsagePercentage
@@ -75,9 +75,8 @@ export default function ServerStatusChart() {
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Area startOffset="expand" stackId="2" dataKey="appCpu" stroke="#C96868" fill="#C96868" name="Application CPU Usage" />
-                    <Area startOffset="expand" stackId="2" dataKey="otherCpu" stroke="#FADFA1" fill="#FADFA1" name="Other CPU Usage" />
-                    <Area startOffset="expand" stackId="2" dataKey="freeCpu" stroke="#6EC207" fill="#6EC207" name="Free CPU" />
+                    <Area startOffset="expand" stackId="2" dataKey="otherCpu" stroke="#FADFA1" fill="#FADFA1" name="CPU Usage" />
+                    <Area startOffset="expand" stackId="2" dataKey="freeCpu" stroke="#6EC207" fill="#6EC207" name="Other CPU" />
                 </AreaChart>
             </div>
         </div>

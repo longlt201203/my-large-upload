@@ -2,7 +2,28 @@ import { freemem, totalmem } from "os";
 import { cpus } from "os";
 import { Request, Response } from "express";
 
-function getServerStatus() {
+function getCpuUsage() {
+  const cpuInfo = cpus();
+  let totalIdle = 0, totalTick = 0;
+
+  cpuInfo.forEach(cpu => {
+    for (let type in cpu.times) {
+      totalTick += cpu.times[type];
+    }
+    totalIdle += cpu.times.idle;
+  });
+
+  return { idle: totalIdle, total: totalTick };
+}
+
+function calculateCpuUsage(start: ReturnType<typeof getCpuUsage>, end: ReturnType<typeof getCpuUsage>) {
+  const idleDifference = end.idle - start.idle;
+  const totalDifference = end.total - start.total;
+
+  return (1 - idleDifference / totalDifference) * 100;
+}
+
+async function getServerStatus() {
   const memUsage = process.memoryUsage();
   const freeMemory = freemem();
   const totalMemory = totalmem();
@@ -20,28 +41,20 @@ function getServerStatus() {
   const totalUsedMemory = totalMemory - freeMemory;
   const totalMemoryUsagePercentage = (totalUsedMemory / totalMemory) * 100;
 
-  // CPU Usage calculation
-  const cpuInfo = cpus();
-  const totalCpuTime = cpuInfo.reduce(
-    (acc, cpu) => acc + cpu.times.user + cpu.times.nice + cpu.times.sys + cpu.times.idle + cpu.times.irq,
-    0
-  );
-  const appCpuTime = cpuInfo.reduce((acc, cpu) => acc + cpu.times.user + cpu.times.sys, 0);
-  const cpuUsagePercentage = (appCpuTime / totalCpuTime) * 100;
+  // CPU Usage sampling
+  const startCpu = getCpuUsage();
+  await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for 1 second
+  const endCpu = getCpuUsage();
 
-  // Total % of CPU usage by the system
-  const totalActiveCpuTime = cpuInfo.reduce(
-    (acc, cpu) => acc + cpu.times.user + cpu.times.nice + cpu.times.sys + cpu.times.irq,
-    0
-  );
-  const totalCpuUsagePercentage = (totalActiveCpuTime / totalCpuTime) * 100;
+  // Calculate the CPU usage over the interval
+  const totalCpuUsagePercentage = calculateCpuUsage(startCpu, endCpu);
+
   const timestamp = Date.now();
 
   return {
     totalRamInMB,
     appRamUsageInMB,
     ramUsagePercentage,
-    cpuUsagePercentage,
     totalMemoryUsagePercentage,
     totalCpuUsagePercentage,
     timestamp
@@ -49,6 +62,6 @@ function getServerStatus() {
 }
 
 export const getServerStatusHandler = async (req: Request, res: Response) => {
-    const statusData = getServerStatus();
+    const statusData = await getServerStatus();
     res.status(200).send(statusData);
 }
