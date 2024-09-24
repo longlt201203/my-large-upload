@@ -3,7 +3,7 @@ import { Bar, BarChart, CartesianGrid, Label, Legend, Tooltip, XAxis, YAxis } fr
 
 export default function ChunkUploadChart({ data }: { data: ChunkUploadChartDataItem[] }) {
     return (
-        <div>
+        <div className="flex flex-col gap-4">
             <h1 className="text-center text-2xl">Chunk Status</h1>
             <BarChart width={880} height={480} margin={{ top: 0, right: 8, left: 8, bottom: 0 }} data={data}>
                 <CartesianGrid strokeDasharray="3 3" />

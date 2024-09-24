@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ChunkUploadChartDataItem, UploadBytesRecord, UploadingChartDataItem } from "../types";
 import { calculateMean, calculateVariant, findMedian } from "../utils";
 import ChunkUploadChart from "../components/ChunkUploadChart";
+import ServerStatusChart from "../components/ServerStatusChart";
 
 export default function AppV2() {
     const [uploadingChartData, setUploadingChartData] = useState<UploadingChartDataItem[]>([]);
@@ -58,6 +59,7 @@ export default function AppV2() {
             <UploadForm onStart={handleStartUpload} onUploadBytesRecord={(record) => {
                 setUploadBytesRecords(prev => [...prev, record])
             }} onComplete={handleCompleteUpload} />
+            <ServerStatusChart />
             <UploadingChart data={uploadingChartData} />
             <ChunkUploadChart data={chunkUploadChartData} />
         </div>
