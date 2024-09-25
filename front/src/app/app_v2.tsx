@@ -50,6 +50,8 @@ export default function AppV2() {
                 }
                 return [...prev];
             })
+        } else {
+            setChunkUploadChartData([]);
         }
     }, [uploadBytesRecords])
 
