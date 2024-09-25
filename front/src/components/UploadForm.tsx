@@ -29,7 +29,8 @@ function calculateNumberOfChunks(file: File, chunkSize: number) {
 }
 
 const endpoints = [
-    '/api/upload/multer',
+    '/api/upload/multer/disk',
+    '/api/upload/multer/mem',
     '/api/upload/busboy',
 ];
 

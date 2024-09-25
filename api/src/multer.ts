@@ -1,8 +1,8 @@
-import multer, { diskStorage } from 'multer';
+import multer, { diskStorage, memoryStorage } from 'multer';
 
 const uploadFolder = 'uploads';
 
-const storage = diskStorage({
+const diskStore = diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadFolder);
   },
@@ -11,4 +11,7 @@ const storage = diskStorage({
   },
 });
 
-export const upload = multer({ storage });
+const memStore = memoryStorage();
+
+export const uploadDisk = multer({ storage: diskStore });
+export const uploadMem = multer({ storage: memStore });
